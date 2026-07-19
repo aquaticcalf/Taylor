@@ -907,4 +907,74 @@ module Window
     # src/mruby_integration/models/window.cpp
     nil
   end
+
+  # Returns the safe area insets as +[top, right, bottom, left]+ in pixels.
+  # On Android these are the system window insets (notch, status bar, etc.).
+  # On other platforms returns +[0, 0, 0, 0]+.
+  #
+  # @example Basic usage
+  #   top, right, bottom, left = Window.safe_area
+  #   puts "Notch inset: #{top}px"
+  #
+  # @return [Array<Integer>] +[top, right, bottom, left]+
+  def self.safe_area
+    # mrb_Window_safe_area
+    # src/mruby_integration/models/window.cpp
+    [0, 0, 0, 0]
+  end
+
+  # Returns the aspect ratio of the window (+width / height+).
+  #
+  # @example Basic usage
+  #   puts Window.aspect_ratio
+  #   # => 1.777...
+  #
+  # @return [Float]
+  def self.aspect_ratio
+    # mrb_Window_aspect_ratio
+    # src/mruby_integration/models/window.cpp
+    1.0
+  end
+
+  # Returns the logical (safe) width — the window width minus left and right
+  # safe-area insets.
+  #
+  # @example Basic usage
+  #   puts Window.logical_width
+  #   # => 1920
+  #
+  # @return [Integer]
+  def self.logical_width
+    width - safe_area[1] - safe_area[3]
+  end
+
+  # Returns the logical (safe) height — the window height minus top and bottom
+  # safe-area insets.
+  #
+  # @example Basic usage
+  #   puts Window.logical_height
+  #   # => 1080
+  #
+  # @return [Integer]
+  def self.logical_height
+    height - safe_area[0] - safe_area[2]
+  end
+
+  # Returns a {Rectangle} representing the letterbox area (the safe drawing
+  # region accounting for notches and system bars).
+  #
+  # @example Basic usage
+  #   letterbox = Window.letterbox
+  #   # Draw content only within the letterbox rectangle
+  #
+  # @return [Rectangle]
+  def self.letterbox
+    top, right, bottom, left = safe_area
+    Rectangle.new(
+      x: left,
+      y: top,
+      width: logical_width,
+      height: logical_height
+    )
+  end
 end

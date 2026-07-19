@@ -17,6 +17,7 @@ jmethodID g_get_mag = nullptr;
 jmethodID g_has_accel = nullptr;
 jmethodID g_has_gyro = nullptr;
 jmethodID g_has_mag = nullptr;
+jmethodID g_get_safe_area = nullptr;
 
 auto jni_env() -> JNIEnv*
 {
@@ -89,10 +90,11 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*)
   g_has_accel = env->GetStaticMethodID(g_game_loader, "hasAccelerometer", "()Z");
   g_has_gyro = env->GetStaticMethodID(g_game_loader, "hasGyroscope", "()Z");
   g_has_mag = env->GetStaticMethodID(g_game_loader, "hasMagnetometer", "()Z");
+  g_get_safe_area = env->GetStaticMethodID(g_game_loader, "getSafeAreaInsets", "()[I");
 
   if (g_set_orientation == nullptr || g_get_orientation == nullptr || g_get_accel == nullptr ||
       g_get_gyro == nullptr || g_get_mag == nullptr || g_has_accel == nullptr ||
-      g_has_gyro == nullptr || g_has_mag == nullptr) {
+      g_has_gyro == nullptr || g_has_mag == nullptr || g_get_safe_area == nullptr) {
     return JNI_ERR;
   }
 
@@ -214,6 +216,35 @@ bool taylor_android_has_magnetometer()
   return v == JNI_TRUE;
 }
 
+void taylor_android_get_safe_area(int out[4])
+{
+  out[0] = out[1] = out[2] = out[3] = 0;
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_safe_area == nullptr) {
+    return;
+  }
+  auto arr = static_cast<jintArray>(env->CallStaticObjectMethod(g_game_loader, g_get_safe_area));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return;
+  }
+  if (arr == nullptr || env->GetArrayLength(arr) < 4) {
+    if (arr != nullptr) env->DeleteLocalRef(arr);
+    return;
+  }
+  jint buf[4];
+  env->GetIntArrayRegion(arr, 0, 4, buf);
+  env->DeleteLocalRef(arr);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return;
+  }
+  out[0] = buf[0];
+  out[1] = buf[1];
+  out[2] = buf[2];
+  out[3] = buf[3];
+}
+
 // UI thread → enqueue only; Ruby runs later in Window.begin_drawing.
 extern "C" JNIEXPORT void JNICALL __attribute__((used, visibility("default")))
 Java_com_raylib_game_GameLoader_nativeOnOrientationChange(JNIEnv*, jclass, jint new_orientation)
@@ -261,6 +292,11 @@ bool taylor_android_has_gyroscope()
 bool taylor_android_has_magnetometer()
 {
   return false;
+}
+
+void taylor_android_get_safe_area(int out[4])
+{
+  out[0] = out[1] = out[2] = out[3] = 0;
 }
 
 #endif

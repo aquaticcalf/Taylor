@@ -32,3 +32,7 @@ void taylor_android_get_magnetometer(float* x, float* y, float* z);
 bool taylor_android_has_accelerometer();
 bool taylor_android_has_gyroscope();
 bool taylor_android_has_magnetometer();
+
+// Safe-area inset values from Android (top, right, bottom, left).
+// Writes zeros on non-Android.
+void taylor_android_get_safe_area(int out[4]);

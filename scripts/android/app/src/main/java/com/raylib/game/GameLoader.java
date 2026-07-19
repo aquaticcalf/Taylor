@@ -8,6 +8,8 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.view.WindowInsets;
+import android.view.View;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -20,6 +22,8 @@ public class GameLoader extends GameActivity implements SensorEventListener {
   private static volatile boolean sHasAccel;
   private static volatile boolean sHasGyro;
   private static volatile boolean sHasMag;
+
+  private static final int[] sSafeArea = new int[4];
 
   private SensorManager sensorManager;
   private Sensor accelSensor;
@@ -36,6 +40,16 @@ public class GameLoader extends GameActivity implements SensorEventListener {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     sInstance = this;
+
+    final View root = findViewById(android.R.id.content);
+    if (root != null) {
+      root.setOnApplyWindowInsetsListener(
+          (View v, WindowInsets insets) -> {
+            updateSafeArea(insets);
+            return v.onApplyWindowInsets(insets);
+          });
+    }
+
     sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
     if (sensorManager != null) {
       accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -82,6 +96,29 @@ public class GameLoader extends GameActivity implements SensorEventListener {
       sInstance = null;
     }
     super.onDestroy();
+  }
+
+  private static void updateSafeArea(WindowInsets insets) {
+    synchronized (sSafeArea) {
+      sSafeArea[0] = insets.getSystemWindowInsetTop();
+      sSafeArea[1] = insets.getSystemWindowInsetRight();
+      sSafeArea[2] = insets.getSystemWindowInsetBottom();
+      sSafeArea[3] = insets.getSystemWindowInsetLeft();
+    }
+  }
+
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) {
+      final View decorView = getWindow().getDecorView();
+      if (decorView != null) {
+        final WindowInsets insets = decorView.getRootWindowInsets();
+        if (insets != null) {
+          updateSafeArea(insets);
+        }
+      }
+    }
   }
 
   @Override
@@ -164,5 +201,11 @@ public class GameLoader extends GameActivity implements SensorEventListener {
 
   public static boolean hasMagnetometer() {
     return sHasMag;
+  }
+
+  public static int[] getSafeAreaInsets() {
+    synchronized (sSafeArea) {
+      return new int[] {sSafeArea[0], sSafeArea[1], sSafeArea[2], sSafeArea[3]};
+    }
   }
 }

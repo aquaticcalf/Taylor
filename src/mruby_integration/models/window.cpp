@@ -1,4 +1,5 @@
 #include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
 #include "raylib.h"
@@ -538,6 +539,32 @@ auto mrb_Window_scale(mrb_state* mrb, mrb_value) -> mrb_value
   return mrb_Vector2_value(mrb, scale);
 }
 
+auto mrb_Window_safe_area(mrb_state* mrb, mrb_value) -> mrb_value
+{
+  mrb_value ary = mrb_ary_new(mrb);
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+  int safe[4];
+  taylor_android_get_safe_area(safe);
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, safe[0]));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, safe[1]));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, safe[2]));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, safe[3]));
+#else
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, 0));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, 0));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, 0));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, 0));
+#endif
+  return ary;
+}
+
+auto mrb_Window_aspect_ratio(mrb_state* mrb, mrb_value) -> mrb_value
+{
+  EXIT_UNLESS_WINDOW_READY("You must call Window.open before Window.aspect_ratio")
+  float ratio = static_cast<float>(GetScreenWidth()) / static_cast<float>(GetScreenHeight());
+  return mrb_float_value(mrb, ratio);
+}
+
 auto mrb_Window_clear(mrb_state* mrb, mrb_value) -> mrb_value
 {
   EXIT_UNLESS_WINDOW_READY("You must call Window.open before Window.clear")
@@ -665,6 +692,10 @@ void append_models_Window(mrb_state* mrb)
   mrb_define_class_method(mrb, Window_class, "to_image", mrb_Window_to_image, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, Window_class, "monitor=", mrb_Window_set_monitor, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, Window_class, "scale", mrb_Window_scale, MRB_ARGS_NONE());
+  mrb_define_class_method(
+    mrb, Window_class, "safe_area", mrb_Window_safe_area, MRB_ARGS_NONE());
+  mrb_define_class_method(
+    mrb, Window_class, "aspect_ratio", mrb_Window_aspect_ratio, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, Window_class, "clear", mrb_Window_clear, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, Window_class, "screenshot", mrb_Window_screenshot, MRB_ARGS_REQ(1));
   mrb_define_class_method(
