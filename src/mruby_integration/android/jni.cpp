@@ -1,6 +1,7 @@
 #include "mruby_integration/android/jni.hpp"
 
-#ifdef __NDK_MAJOR__
+// NDK always defines __ANDROID__ for Android targets; __NDK_MAJOR__ needs extra headers.
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
 
 #include <jni.h>
 
@@ -100,6 +101,17 @@ bool taylor_android_set_orientation(int)
 int taylor_android_get_orientation()
 {
   return TaylorAndroidOrientation::LANDSCAPE;
+}
+
+#endif
+
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+
+// UI thread → enqueue only; Ruby runs later in Window.begin_drawing.
+extern "C" JNIEXPORT void JNICALL __attribute__((used, visibility("default")))
+Java_com_raylib_game_GameLoader_nativeOnOrientationChange(JNIEnv*, jclass, jint new_orientation)
+{
+  taylor_window_notify_physical_orientation(static_cast<int>(new_orientation));
 }
 
 #endif

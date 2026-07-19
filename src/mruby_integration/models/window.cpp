@@ -3,6 +3,8 @@
 #include "mruby/variable.h"
 #include "raylib.h"
 
+#include <mutex>
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -18,8 +20,48 @@
 
 struct RClass* Window_class;
 
-// Last requested orientation (also used on non-Android as the stored value).
+// Last requested orientation (Window.orientation=).
 static int g_window_orientation = TaylorAndroidOrientation::LANDSCAPE;
+// Last physical portrait/landscape reported from Android config changes.
+static int g_last_physical_orientation = TaylorAndroidOrientation::LANDSCAPE;
+
+// GC-rooted Ruby callback; invoked only on the game thread via begin_drawing.
+static mrb_value g_orientation_callback = mrb_nil_value();
+static mrb_state* g_orientation_callback_mrb = nullptr;
+
+struct OrientationChangeEvent {
+  int old_code;
+  int new_code;
+};
+
+static constexpr int ORIENT_QUEUE_CAP = 8;
+static OrientationChangeEvent g_orient_queue[ORIENT_QUEUE_CAP];
+static int g_orient_q_head = 0;
+static int g_orient_q_tail = 0;
+static std::mutex g_orient_q_mutex;
+
+void taylor_window_enqueue_orientation_change(int old_code, int new_code)
+{
+  if (old_code == new_code) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(g_orient_q_mutex);
+  const int next = (g_orient_q_tail + 1) % ORIENT_QUEUE_CAP;
+  if (next == g_orient_q_head) {
+    // Drop oldest event if the game thread is not draining.
+    g_orient_q_head = (g_orient_q_head + 1) % ORIENT_QUEUE_CAP;
+  }
+  g_orient_queue[g_orient_q_tail] = { old_code, new_code };
+  g_orient_q_tail = next;
+}
+
+void taylor_window_notify_physical_orientation(int physical_code)
+{
+  const int old_code = g_last_physical_orientation;
+  g_last_physical_orientation = physical_code;
+  taylor_window_enqueue_orientation_change(old_code, physical_code);
+}
 
 static auto orientation_code_for_sym(mrb_state* mrb, mrb_sym sym) -> int
 {
@@ -78,9 +120,38 @@ static auto orientation_sym_for_code(mrb_state* mrb, int code) -> mrb_sym
   }
 }
 
+static void drain_orientation_callbacks(mrb_state* mrb)
+{
+  OrientationChangeEvent batch[ORIENT_QUEUE_CAP];
+  int count = 0;
+
+  {
+    std::lock_guard<std::mutex> lock(g_orient_q_mutex);
+    while (g_orient_q_head != g_orient_q_tail && count < ORIENT_QUEUE_CAP) {
+      batch[count++] = g_orient_queue[g_orient_q_head];
+      g_orient_q_head = (g_orient_q_head + 1) % ORIENT_QUEUE_CAP;
+    }
+  }
+
+  if (count == 0 || mrb_nil_p(g_orientation_callback)) {
+    return;
+  }
+
+  for (int i = 0; i < count; ++i) {
+    mrb_value args[2] = {
+      mrb_symbol_value(orientation_sym_for_code(mrb, batch[i].old_code)),
+      mrb_symbol_value(orientation_sym_for_code(mrb, batch[i].new_code)),
+    };
+    mrb_yield_argv(mrb, g_orientation_callback, 2, args);
+    if (mrb->exc) {
+      return;
+    }
+  }
+}
+
 auto mrb_Window_orientation(mrb_state* mrb, mrb_value) -> mrb_value
 {
-#ifdef __NDK_MAJOR__
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
   int code = taylor_android_get_orientation();
   if (code < 0) {
     code = g_window_orientation;
@@ -96,14 +167,38 @@ auto mrb_Window_set_orientation(mrb_state* mrb, mrb_value) -> mrb_value
   mrb_sym sym;
   mrb_get_args(mrb, "n", &sym);
 
+  const int old_code = g_window_orientation;
   const int code = orientation_code_for_sym(mrb, sym);
   g_window_orientation = code;
 
-#ifdef __NDK_MAJOR__
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
   taylor_android_set_orientation(code);
 #endif
 
+  taylor_window_enqueue_orientation_change(old_code, code);
+
   return mrb_symbol_value(sym);
+}
+
+auto mrb_Window_on_orientation_change(mrb_state* mrb, mrb_value) -> mrb_value
+{
+  mrb_value block = mrb_nil_value();
+  mrb_get_args(mrb, "&", &block);
+
+  if (g_orientation_callback_mrb != nullptr && !mrb_nil_p(g_orientation_callback)) {
+    mrb_gc_unregister(g_orientation_callback_mrb, g_orientation_callback);
+  }
+
+  if (mrb_nil_p(block)) {
+    g_orientation_callback = mrb_nil_value();
+    g_orientation_callback_mrb = nullptr;
+    return mrb_nil_value();
+  }
+
+  g_orientation_callback = block;
+  g_orientation_callback_mrb = mrb;
+  mrb_gc_register(mrb, block);
+  return block;
 }
 
 auto mrb_Window_open(mrb_state* mrb, mrb_value) -> mrb_value
@@ -165,8 +260,10 @@ auto mrb_Window_ready(mrb_state*, mrb_value) -> mrb_value
   return mrb_bool_value(IsWindowReady());
 }
 
-auto mrb_Window_begin_drawing(mrb_state*, mrb_value) -> mrb_value
+auto mrb_Window_begin_drawing(mrb_state* mrb, mrb_value) -> mrb_value
 {
+  // Drain orientation events on the game thread (never yield from Android UI/JNI).
+  drain_orientation_callbacks(mrb);
   BeginDrawing();
   return mrb_nil_value();
 }
@@ -580,6 +677,8 @@ void append_models_Window(mrb_state* mrb)
     mrb, Window_class, "orientation", mrb_Window_orientation, MRB_ARGS_NONE());
   mrb_define_class_method(
     mrb, Window_class, "orientation=", mrb_Window_set_orientation, MRB_ARGS_REQ(1));
+  mrb_define_class_method(
+    mrb, Window_class, "on_orientation_change", mrb_Window_on_orientation_change, MRB_ARGS_OPT(1));
 
   load_ruby_models_window(mrb);
 }

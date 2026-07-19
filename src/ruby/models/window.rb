@@ -469,6 +469,14 @@ module Window
   #   @param value [Symbol]
   #   @return [Symbol]
   #   @raise [ArgumentError] if +value+ is not a supported orientation symbol
+  #
+  # @!method self.on_orientation_change
+  #   Register a block invoked when orientation changes (Android config or
+  #   +orientation=+). The block runs on the game thread during
+  #   +Window.begin_drawing+ / +Window.draw+.
+  #   @yieldparam old_orientation [Symbol]
+  #   @yieldparam new_orientation [Symbol]
+  #   @return [Proc, nil] the block, or +nil+ when cleared (no block given)
 
   # This module holds all the constants for {Window} flags.
   module Flag

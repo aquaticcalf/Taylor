@@ -42,6 +42,15 @@ Window.orientation  # => :portrait
 Supported: `:landscape`, `:portrait`, `:auto`, `:sensor`, `:sensor_landscape`,
 `:sensor_portrait`, `:full_sensor`.
 
+```ruby
+Window.on_orientation_change do |old_o, new_o|
+  puts "#{old_o} -> #{new_o}"
+end
+```
+
+Callbacks are enqueued from the UI thread and run during `Window.draw` /
+`begin_drawing` (not on the Android UI thread).
+
 ## Vendored GameActivity
 
 `vendor/android/game-activity/` contains:

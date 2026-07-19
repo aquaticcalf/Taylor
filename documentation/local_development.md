@@ -82,6 +82,10 @@ Runtime orientation (Android):
 ```ruby
 Window.orientation = :portrait   # or :landscape, :sensor, :auto, ...
 puts Window.orientation
+
+Window.on_orientation_change do |old_o, new_o|
+  puts "#{old_o} -> #{new_o}"
+end
 ```
 
 Rebuild the Android image after pulling these changes:

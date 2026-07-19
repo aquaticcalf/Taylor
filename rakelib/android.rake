@@ -34,9 +34,10 @@ class AndroidBuilder < Builder
       "-l GLESv2",
       "-l OpenSLES",
       "-l atomic",
-      # Keep GameActivity / our JNI_OnLoad from being stripped
+      # Keep GameActivity / our JNI entry points from being stripped
       "-u Java_com_google_androidgamesdk_GameActivity_initializeNativeCode",
       "-u JNI_OnLoad",
+      "-u Java_com_raylib_game_GameLoader_nativeOnOrientationChange",
       "-Wl,-soname,libmain.so",
       "./vendor/android/libmruby.a",
       "./vendor/android/raylib/lib/libraylib.a",

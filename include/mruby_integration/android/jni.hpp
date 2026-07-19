@@ -18,3 +18,9 @@ bool taylor_android_set_orientation(int orientation);
 
 // Returns the Activity requested orientation, or LANDSCAPE if unavailable.
 int taylor_android_get_orientation();
+
+// Safe from any thread; Ruby is notified later on the game thread.
+void taylor_window_enqueue_orientation_change(int old_code, int new_code);
+
+// Android config-change path: tracks last physical portrait/landscape code.
+void taylor_window_notify_physical_orientation(int physical_code);

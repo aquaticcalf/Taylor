@@ -17,9 +17,11 @@ rake build:android:release
 ls -la dist/android/release/libmain.so
 echo "==> symbols"
 SYMS=$(llvm-nm dist/android/release/libmain.so)
-printf '%s\n' "$SYMS" | grep -E 'JNI_OnLoad|taylor_android_set_orientation|taylor_android_get_orientation' || true
+printf '%s\n' "$SYMS" | grep -E 'JNI_OnLoad|taylor_android_set_orientation|taylor_android_get_orientation|nativeOnOrientationChange|enqueue_orientation' || true
 printf '%s\n' "$SYMS" | grep -E 'JNI_OnLoad' >/dev/null
 printf '%s\n' "$SYMS" | grep -E 'taylor_android_set_orientation' >/dev/null
 printf '%s\n' "$SYMS" | grep -E 'taylor_android_get_orientation' >/dev/null
+printf '%s\n' "$SYMS" | grep -E 'nativeOnOrientationChange' >/dev/null
+printf '%s\n' "$SYMS" | grep -E 'taylor_window_enqueue_orientation_change|taylor_window_notify_physical' >/dev/null
 
 echo "STEP4_LINK_OK"

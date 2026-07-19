@@ -19,6 +19,7 @@
 - Android: pass game name/version from Taylor::Config into the APK
 - Android: mark packages with android:appCategory="game"
 - Android: add Window.orientation / Window.orientation= (GameActivity JNI)
+- Android: add Window.on_orientation_change callback (queued to game thread)
 
 ## v0.4.3
 
