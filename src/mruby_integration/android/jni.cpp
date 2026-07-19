@@ -4,6 +4,7 @@
 #if defined(__ANDROID__) || defined(__NDK_MAJOR__)
 
 #include <jni.h>
+#include <string.h>
 
 namespace {
 
