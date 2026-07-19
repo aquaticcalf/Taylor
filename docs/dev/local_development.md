@@ -10,37 +10,37 @@
   2.1 For Linux, install [Docker Engine](https://docs.docker.com/engine/)
   2.2 For OSX/Windows, install [Docker Desktop](https://docs.docker.com/desktop/)
 3. Run `git clone git@github.com:HellRok/Taylor.git && cd Taylor`
-4. Run `dx/build` to build the development Docker environment (this step will
+4. Run `build/docker/build` to build the development Docker environment (this step will
    take some time)
-5. Run `dx/start` to start the Docker environment
-6. Run `dx/exec bin/setup` to finish the setup inside of the Docker environment
-7. Run `dx/exec bundle exec rake ci` to confirm everything is working
+5. Run `build/docker/start` to start the Docker environment
+6. Run `build/docker/exec bin/setup` to finish the setup inside of the Docker environment
+7. Run `build/docker/exec bundle exec rake ci` to confirm everything is working
 8. Run `git config core.hooksPath ./.git-hooks` to setup the git hooks
 
 ## Coming Back
 
 1. `cd` into the Taylor directory
 2. Run `git pull` to make sure you have the latest changes
-3. Run `dx/build && dx/start && dx/exec bin/setup` to get everything setup
+3. Run `build/docker/build && build/docker/start && build/docker/exec bin/setup` to get everything setup
 
 ## Developing
 
 1. Do the above steps to get the environment setup
-2. Run `dx/exec bash` to get a shell in the development environment
+2. Run `build/docker/exec bash` to get a shell in the development environment
 3. Make your changes in your preferred editor
-4. In the development shell run `dx/exec bundle exec rake ci:testing` to test
+4. In the development shell run `build/docker/exec bundle exec rake ci:testing` to test
    your changes
 
 ## Once You're Done
 
-1. Run `dx/exec stop` to stop the development environment
+1. Run `build/docker/exec stop` to stop the development environment
 
 ## Using Development Taylor
 
 1. Compile the development binary
-  1.1 For Linux run `dx/exec bin/build-for-linux`
-  1.2 For Windows run `dx/exec bin/build-for-windows`
-  1.3 For OSX run `dx/exec bin/build-for-osx`
+  1.1 For Linux run `build/docker/exec bin/build-for-linux`
+  1.2 For Windows run `build/docker/exec bin/build-for-windows`
+  1.3 For OSX run `build/docker/exec bin/build-for-osx`
 2. Run the development binary
   2.1 For Linux run `./dist/linux/debug/taylor ./cli-tool/cli.rb`
   2.2 For Windows run `./dist/windows/debug/taylor.exe ./cli-tool/cli.rb`
@@ -58,7 +58,7 @@
 
 ## Building Taylor in Release Mode
 
-1. Enter the development environment with `dx/exec bash`
+1. Enter the development environment with `build/docker/exec bash`
 2. Run `bundle exec rake` to ensure you have a debug `taylor`
 3. Run `bundle exec rake docker:build:all` to build all the images (this
    step will take some time)

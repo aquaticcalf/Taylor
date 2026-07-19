@@ -32,9 +32,9 @@ If you'd like to see some examples, check them out on the [online playground!](h
 
 ## Documentation
 
-### [Contributing](/documentation/contributing.md)
+### [Contributing](/docs/dev/contributing.md)
 
-### [Local Development](/documentation/local_development.md)
+### [Local Development](/docs/dev/local_development.md)
 
 ## License
 

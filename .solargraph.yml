@@ -1,5 +1,5 @@
 include:
-- mrb_doc/**/*.rb
+- docs/api/**/*.rb
 - src/ruby/**/*.rb
 exclude:
 - test/**/*
