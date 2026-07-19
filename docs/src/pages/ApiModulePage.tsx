@@ -125,7 +125,6 @@ export function ApiModulePage() {
             <MethodCard
               key={method.name}
               method={method}
-              moduleName={mod.name}
             />
           ))}
         </section>
@@ -150,10 +149,8 @@ const allPlatforms = [
 
 function MethodCard({
   method,
-  moduleName,
 }: {
   method: ApiMethod
-  moduleName: string
 }) {
   const hasParams = method.params && method.params.length > 0
   const hasReturns = !!method.returns && method.returns !== "void"
