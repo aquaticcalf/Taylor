@@ -1,6 +1,0 @@
-steps:
-  - label: 'CI'
-    commands:
-      - gem install bundler
-      - bundle install
-      - TMPDIR=/tmp/taylor-builds/ bundle exec rake ci
