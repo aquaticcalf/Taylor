@@ -31,4 +31,3 @@ logs
 *.keystore
 .gradle/
 .bundle/
-update_gameloader.ps1
