@@ -64,3 +64,22 @@
    step will take some time)
 4. `cd cli-tool && ../dist/linux/debug/taylor cli.rb export`
 5. You should have all the zip files in `cli-tool/exports`
+
+## Android (GameActivity)
+
+Taylor Android exports use Jetpack **GameActivity** (`scripts/android/GameLoader.java`)
+instead of `NativeActivity`. Native code links
+`vendor/android/game-activity/lib/arm64-v8a/libgame-activity_static.a` and the APK
+is assembled with Gradle (`scripts/android/`).
+
+Rebuild the Android image after pulling these changes:
+
+```
+bundle exec rake docker:build:android
+```
+
+Rebuild raylib for Android (GameActivity headers) when updating that dependency:
+
+```
+bundle exec rake docker:build:raylib
+```

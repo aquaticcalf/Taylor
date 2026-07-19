@@ -1,0 +1,104 @@
+plugins {
+  id "com.android.application"
+}
+
+def taylorRoot = file("../../..")
+def gameRoot = System.getenv("GAME_ROOT") ? file(System.getenv("GAME_ROOT")) : file("/app/game")
+def nativeLib = System.getenv("TAYLOR_ANDROID_LIB") ?
+  file(System.getenv("TAYLOR_ANDROID_LIB")) :
+  new File(taylorRoot, "dist/android/release/libmain.so")
+
+android {
+  namespace "com.raylib.game"
+  compileSdk 34
+
+  defaultConfig {
+    applicationId "com.raylib.game"
+    minSdk 23
+    targetSdk 34
+    versionCode 1
+    versionName "1.0"
+
+    ndk {
+      abiFilters "arm64-v8a"
+    }
+
+    resValue "string", "app_name", project.findProperty("applicationName") ?: "Game"
+  }
+
+  buildFeatures {
+    prefab true
+    buildConfig false
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  packaging {
+    jniLibs {
+      useLegacyPackaging true
+    }
+  }
+
+  sourceSets {
+    main {
+      manifest.srcFile "../AndroidManifest.xml"
+      java.srcDirs = ["../", "src/main/java"]
+      res.srcDirs = ["../res", "src/main/res"]
+      assets.srcDirs = [
+        new File(gameRoot, "assets").exists() ? new File(gameRoot, "assets") : "src/main/assets"
+      ]
+      jniLibs.srcDirs = ["src/main/jniLibs"]
+    }
+  }
+
+  signingConfigs {
+    release {
+      if (project.hasProperty("taylorKeystore")) {
+        storeFile file(taylorKeystore)
+        storePassword project.findProperty("taylorKeystorePassword") ?: ""
+        keyAlias project.findProperty("taylorKeyAlias") ?: "app"
+        keyPassword project.findProperty("taylorKeyPassword") ?: ""
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      if (signingConfigs.release.storeFile != null) {
+        signingConfig signingConfigs.release
+      }
+    }
+    debug {
+      debuggable true
+    }
+  }
+}
+
+dependencies {
+  implementation "androidx.games:games-activity:4.4.2"
+  implementation "androidx.appcompat:appcompat:1.6.1"
+  implementation "androidx.core:core:1.12.0"
+}
+
+tasks.register("copyTaylorNativeLib", Copy) {
+  from nativeLib
+  into "src/main/jniLibs/arm64-v8a"
+  rename { "libmain.so" }
+  doFirst {
+    if (!nativeLib.exists()) {
+      throw new GradleException(
+        "Native library not found at ${nativeLib}. Build libmain.so first (rake android:release:build)."
+      )
+    }
+    logger.lifecycle("Copying ${nativeLib} -> jniLibs/arm64-v8a/libmain.so")
+  }
+}
+
+tasks.matching { it.name.startsWith("merge") && it.name.contains("JniLib") }.configureEach {
+  dependsOn("copyTaylorNativeLib")
+}
+tasks.named("preBuild").configure { dependsOn("copyTaylorNativeLib") }

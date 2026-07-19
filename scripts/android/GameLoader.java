@@ -2,9 +2,7 @@ package com.raylib.game;
 
 import com.google.androidgamesdk.GameActivity;
 
-/** @deprecated Prefer scripts/android/GameLoader.java. */
-@Deprecated
-public class NativeLoader extends GameActivity {
+public class GameLoader extends GameActivity {
   static {
     System.loadLibrary("main");
   }

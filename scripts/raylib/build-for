@@ -9,7 +9,8 @@ export CUSTOM_CFLAGS="-DSUPPORT_FILEFORMAT_BMP=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSU
 
 case "${platform}" in
   android)
-    make PLATFORM=PLATFORM_ANDROID
+    make PLATFORM=PLATFORM_ANDROID \
+      GAME_ACTIVITY_INCLUDE="${GAME_ACTIVITY_INCLUDE:-/app/taylor/vendor/android/game-activity/include}"
     ;;
   linux)
     make PLATFORM=PLATFORM_DESKTOP

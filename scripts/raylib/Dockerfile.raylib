@@ -9,9 +9,12 @@ RUN git apply tweaks.patch
 FROM taylor/build-android AS raylib_android
 WORKDIR /app
 COPY --from=raylib_base /app /app
-RUN apt-get install -y \
-    make
-RUN ./build-for android
+COPY ./scripts/raylib/apply-gameactivity.rb /app/apply-gameactivity.rb
+COPY ./scripts/raylib/gameactivity/ /app/gameactivity/
+COPY ./vendor/android/game-activity/include/ /app/taylor/vendor/android/game-activity/include/
+RUN apt-get update -y && apt-get install -y make ruby && \
+  ruby /app/apply-gameactivity.rb && \
+  GAME_ACTIVITY_INCLUDE=/app/taylor/vendor/android/game-activity/include ./build-for android
 
 FROM taylor/build-linux AS raylib_linux
 WORKDIR /app

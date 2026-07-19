@@ -11,6 +11,10 @@
 - Fix up Window tests
 - Make the development Docker file a bit better
 - Update development documentation
+- Android: migrate from NativeActivity to Jetpack GameActivity (AGDK 4.4.2)
+- Android: package APKs with Gradle + games-activity instead of hand-rolled aapt/dx
+- Android: vendor game-activity headers/static lib for arm64-v8a
+- Android: raylib Android backend patched for GameActivity input buffers
 
 ## v0.4.3
 

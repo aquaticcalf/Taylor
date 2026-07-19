@@ -1,6 +1,6 @@
 package com.raylib.game;
-public class NativeLoader extends android.app.NativeActivity {
-  static {
-    System.loadLibrary("main");
-  }
+
+/** @deprecated Use {@link GameLoader}. */
+@Deprecated
+public class NativeLoader extends GameLoader {
 }
