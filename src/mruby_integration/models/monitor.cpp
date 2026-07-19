@@ -6,6 +6,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
+#include "mruby_integration/android/jni.hpp"
 #include "mruby_integration/exceptions.hpp"
 #include "mruby_integration/helpers.hpp"
 #include "mruby_integration/models/monitor.hpp"
@@ -108,7 +109,11 @@ auto mrb_Monitor_refresh_rate(mrb_state* mrb, mrb_value self) -> mrb_value
 
   mrb_get_self(mrb, self, Monitor, monitor);
 
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+  return mrb_int_value(mrb, taylor_android_get_refresh_rate(monitor->id));
+#else
   return mrb_int_value(mrb, GetMonitorRefreshRate(monitor->id));
+#endif
 }
 
 auto mrb_Monitor_name(mrb_state* mrb, mrb_value self) -> mrb_value
@@ -117,7 +122,14 @@ auto mrb_Monitor_name(mrb_state* mrb, mrb_value self) -> mrb_value
 
   mrb_get_self(mrb, self, Monitor, monitor);
 
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+  const char* name = taylor_android_get_monitor_name(monitor->id);
+  mrb_value result = mrb_str_new_cstr(mrb, name ? name : "");
+  free(const_cast<char*>(name));
+  return result;
+#else
   return mrb_str_new_cstr(mrb, GetMonitorName(monitor->id));
+#endif
 }
 
 void append_models_Monitor(mrb_state* mrb)

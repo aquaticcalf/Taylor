@@ -1,5 +1,7 @@
 package com.raylib.game;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -8,8 +10,10 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.view.WindowInsets;
+import android.view.Display;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowManager;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -171,6 +175,85 @@ public class GameLoader extends GameActivity implements SensorEventListener {
       return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
     }
     return activity.getRequestedOrientation();
+  }
+
+  public static void setClipboardText(String text) {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return;
+    }
+    ClipboardManager cm = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+    if (cm != null) {
+      cm.setPrimaryClip(ClipData.newPlainText("Taylor", text));
+    }
+  }
+
+  public static String getClipboardText() {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return "";
+    }
+    ClipboardManager cm = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+    if (cm != null && cm.hasPrimaryClip()) {
+      ClipData.Item item = cm.getPrimaryClip().getItemAt(0);
+      CharSequence text = item.getText();
+      return text != null ? text.toString() : "";
+    }
+    return "";
+  }
+
+  public static void setWindowTitle(String title) {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return;
+    }
+    activity.runOnUiThread(() -> activity.setTitle(title));
+  }
+
+  public static int getRefreshRate(int monitorId) {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return 60;
+    }
+    WindowManager wm = activity.getWindowManager();
+    if (wm == null) {
+      return 60;
+    }
+    Display display = wm.getDefaultDisplay();
+    return (int) display.getRefreshRate();
+  }
+
+  public static String getMonitorName(int monitorId) {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return "";
+    }
+    WindowManager wm = activity.getWindowManager();
+    if (wm == null) {
+      return "";
+    }
+    Display display = wm.getDefaultDisplay();
+    String name = display.getName();
+    return name != null ? name : "";
+  }
+
+  public static void toggleFullscreen() {
+    final GameLoader activity = sInstance;
+    if (activity == null) {
+      return;
+    }
+    activity.runOnUiThread(() -> {
+      View decorView = activity.getWindow().getDecorView();
+      int uiOptions = decorView.getSystemUiVisibility();
+      if ((uiOptions & View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY) != 0) {
+        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+      } else {
+        decorView.setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+      }
+    });
   }
 
   public static float[] getAccelerometer() {

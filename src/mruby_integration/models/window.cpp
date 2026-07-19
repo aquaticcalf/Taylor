@@ -320,6 +320,11 @@ auto mrb_Window_set_title(mrb_state* mrb, mrb_value) -> mrb_value
   mrb_mod_cv_set(mrb, Window_class, mrb_intern_cstr(mrb, "@@title"), mrb_str_new_cstr(mrb, title));
 
   SetWindowTitle(title);
+
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+  taylor_android_set_window_title(title);
+#endif
+
   return mrb_nil_value();
 }
 
@@ -395,7 +400,11 @@ auto mrb_Window_toggle_fullscreen(mrb_state* mrb, mrb_value) -> mrb_value
 {
   EXIT_UNLESS_WINDOW_READY("You must call Window.open before Window.toggle_fullscreen")
 
+#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
+  taylor_android_toggle_fullscreen();
+#else
   ToggleFullscreen();
+#endif
   return mrb_nil_value();
 }
 

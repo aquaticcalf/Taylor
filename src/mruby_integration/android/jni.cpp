@@ -18,6 +18,12 @@ jmethodID g_has_accel = nullptr;
 jmethodID g_has_gyro = nullptr;
 jmethodID g_has_mag = nullptr;
 jmethodID g_get_safe_area = nullptr;
+jmethodID g_set_clipboard_text = nullptr;
+jmethodID g_get_clipboard_text = nullptr;
+jmethodID g_set_window_title = nullptr;
+jmethodID g_get_refresh_rate = nullptr;
+jmethodID g_get_monitor_name = nullptr;
+jmethodID g_toggle_fullscreen = nullptr;
 
 auto jni_env() -> JNIEnv*
 {
@@ -92,9 +98,19 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*)
   g_has_mag = env->GetStaticMethodID(g_game_loader, "hasMagnetometer", "()Z");
   g_get_safe_area = env->GetStaticMethodID(g_game_loader, "getSafeAreaInsets", "()[I");
 
+  g_set_clipboard_text = env->GetStaticMethodID(g_game_loader, "setClipboardText", "(Ljava/lang/String;)V");
+  g_get_clipboard_text = env->GetStaticMethodID(g_game_loader, "getClipboardText", "()Ljava/lang/String;");
+  g_set_window_title = env->GetStaticMethodID(g_game_loader, "setWindowTitle", "(Ljava/lang/String;)V");
+  g_get_refresh_rate = env->GetStaticMethodID(g_game_loader, "getRefreshRate", "(I)I");
+  g_get_monitor_name = env->GetStaticMethodID(g_game_loader, "getMonitorName", "(I)Ljava/lang/String;");
+  g_toggle_fullscreen = env->GetStaticMethodID(g_game_loader, "toggleFullscreen", "()V");
+
   if (g_set_orientation == nullptr || g_get_orientation == nullptr || g_get_accel == nullptr ||
       g_get_gyro == nullptr || g_get_mag == nullptr || g_has_accel == nullptr ||
-      g_has_gyro == nullptr || g_has_mag == nullptr || g_get_safe_area == nullptr) {
+      g_has_gyro == nullptr || g_has_mag == nullptr || g_get_safe_area == nullptr ||
+      g_set_clipboard_text == nullptr || g_get_clipboard_text == nullptr ||
+      g_set_window_title == nullptr || g_get_refresh_rate == nullptr ||
+      g_get_monitor_name == nullptr || g_toggle_fullscreen == nullptr) {
     return JNI_ERR;
   }
 
@@ -245,6 +261,109 @@ void taylor_android_get_safe_area(int out[4])
   out[3] = buf[3];
 }
 
+static auto jstring_to_cstr(JNIEnv* env, jstring js) -> const char*
+{
+  if (js == nullptr) {
+    return nullptr;
+  }
+  const char* utf = env->GetStringUTFChars(js, nullptr);
+  if (utf == nullptr) {
+    return nullptr;
+  }
+  const char* dup = strdup(utf);
+  env->ReleaseStringUTFChars(js, utf);
+  env->DeleteLocalRef(js);
+  return dup;
+}
+
+const char* taylor_android_clipboard_text()
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_clipboard_text == nullptr) {
+    return nullptr;
+  }
+  auto js = static_cast<jstring>(env->CallStaticObjectMethod(g_game_loader, g_get_clipboard_text));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return nullptr;
+  }
+  return jstring_to_cstr(env, js);
+}
+
+bool taylor_android_set_clipboard_text(const char* text)
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_set_clipboard_text == nullptr) {
+    return false;
+  }
+  jstring js = env->NewStringUTF(text);
+  env->CallStaticVoidMethod(g_game_loader, g_set_clipboard_text, js);
+  env->DeleteLocalRef(js);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return true;
+}
+
+bool taylor_android_set_window_title(const char* title)
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_set_window_title == nullptr) {
+    return false;
+  }
+  jstring js = env->NewStringUTF(title);
+  env->CallStaticVoidMethod(g_game_loader, g_set_window_title, js);
+  env->DeleteLocalRef(js);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return true;
+}
+
+int taylor_android_get_refresh_rate(int monitor_id)
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_refresh_rate == nullptr) {
+    return 60;
+  }
+  const jint rate = env->CallStaticIntMethod(g_game_loader, g_get_refresh_rate, monitor_id);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return 60;
+  }
+  return static_cast<int>(rate);
+}
+
+const char* taylor_android_get_monitor_name(int monitor_id)
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_monitor_name == nullptr) {
+    return nullptr;
+  }
+  auto js = static_cast<jstring>(env->CallStaticObjectMethod(g_game_loader, g_get_monitor_name, monitor_id));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return nullptr;
+  }
+  return jstring_to_cstr(env, js);
+}
+
+bool taylor_android_toggle_fullscreen()
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_toggle_fullscreen == nullptr) {
+    return false;
+  }
+  env->CallStaticVoidMethod(g_game_loader, g_toggle_fullscreen);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return true;
+}
+
 // UI thread → enqueue only; Ruby runs later in Window.begin_drawing.
 extern "C" JNIEXPORT void JNICALL __attribute__((used, visibility("default")))
 Java_com_raylib_game_GameLoader_nativeOnOrientationChange(JNIEnv*, jclass, jint new_orientation)
@@ -297,6 +416,36 @@ bool taylor_android_has_magnetometer()
 void taylor_android_get_safe_area(int out[4])
 {
   out[0] = out[1] = out[2] = out[3] = 0;
+}
+
+const char* taylor_android_clipboard_text()
+{
+  return nullptr;
+}
+
+bool taylor_android_set_clipboard_text(const char*)
+{
+  return false;
+}
+
+bool taylor_android_set_window_title(const char*)
+{
+  return false;
+}
+
+int taylor_android_get_refresh_rate(int)
+{
+  return 60;
+}
+
+const char* taylor_android_get_monitor_name(int)
+{
+  return nullptr;
+}
+
+bool taylor_android_toggle_fullscreen()
+{
+  return false;
 }
 
 #endif
