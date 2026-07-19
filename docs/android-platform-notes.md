@@ -20,7 +20,7 @@ These have been implemented via JNI bridge and now work on Android:
 
 | API | Problem | Fix |
 |---|---|---|
-| `Window.screenshot` / `Window.to_image` | raylib doesn't implement screen capture on Android | Medium — `MediaProjection` API but needs runtime permission |
+| `Window.screenshot` | `TakeScreenshot` writes relative to cwd, which is the read-only `assets` APK dir. The GPU read (`LoadImageFromScreen`) works fine. | Likely works if you pass an absolute path to internal storage. `Window.to_image` + `Image#save` with `ExportImage` already works. |
 | `Key.*` (all 6 methods) | Returns false/nil — no keyboard shown | Hard — `InputMethodManager` + soft keyboard + key event forwarding |
 | `Mouse.*` (some methods) | Returns false/(0,0) for physical mice | Medium — USB/BT mouse events already partially in raylib |
 
