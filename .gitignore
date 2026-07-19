@@ -29,5 +29,6 @@ logs
 
 .tmp-game-activity/
 *.keystore
-""  
-".gradle/"  
+.gradle/
+.bundle/
+update_gameloader.ps1
