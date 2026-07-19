@@ -15,7 +15,7 @@
 5. Run `build/docker/start` to start the Docker environment
 6. Run `build/docker/exec bin/setup` to finish the setup inside of the Docker environment
 7. Run `build/docker/exec bundle exec rake ci` to confirm everything is working
-8. Run `git config core.hooksPath ./.git-hooks` to setup the git hooks
+8. Run `git config core.hooksPath ./tools/hooks` to setup the git hooks
 
 ## Coming Back
 
