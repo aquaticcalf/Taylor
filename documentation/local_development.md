@@ -86,6 +86,11 @@ puts Window.orientation
 Window.on_orientation_change do |old_o, new_o|
   puts "#{old_o} -> #{new_o}"
 end
+
+# Motion sensors (Android; desktop returns zeros / false)
+a = Device.accelerometer  # Vector3, m/s²
+Device.on_shake { |intensity| puts intensity }
+Device.on_rotation { |pitch, yaw, roll| }
 ```
 
 Rebuild the Android image after pulling these changes:

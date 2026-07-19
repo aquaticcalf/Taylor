@@ -5,6 +5,7 @@
 #include "mruby_integration/models/clipboard.hpp"
 #include "mruby_integration/models/colour.hpp"
 #include "mruby_integration/models/cursor.hpp"
+#include "mruby_integration/models/device.hpp"
 #include "mruby_integration/models/dropped_files.hpp"
 #include "mruby_integration/models/font.hpp"
 #include "mruby_integration/models/gamepad.hpp"
@@ -24,6 +25,7 @@
 #include "mruby_integration/models/texture2d.hpp"
 #include "mruby_integration/models/touch.hpp"
 #include "mruby_integration/models/vector2.hpp"
+#include "mruby_integration/models/vector3.hpp"
 #include "mruby_integration/models/window.hpp"
 
 void append_models(mrb_state* mrb)
@@ -54,5 +56,7 @@ void append_models(mrb_state* mrb)
   append_models_Texture2D(mrb);
   append_models_Touch(mrb);
   append_models_Vector2(mrb);
+  append_models_Vector3(mrb);
+  append_models_Device(mrb); // after Vector3
   append_models_Window(mrb);
 }

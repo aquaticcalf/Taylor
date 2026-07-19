@@ -51,6 +51,7 @@ add_type(Shader);
 add_type(Sound);
 add_type(Texture2D);
 add_type(Vector2);
+add_type(Vector3);
 
 auto mrb_ReferenceCounter_reference_count(mrb_state* mrb, mrb_value self) -> mrb_value
 {

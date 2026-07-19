@@ -20,6 +20,8 @@
 - Android: mark packages with android:appCategory="game"
 - Android: add Window.orientation / Window.orientation= (GameActivity JNI)
 - Android: add Window.on_orientation_change callback (queued to game thread)
+- Android: add Device accelerometer/gyroscope/magnetometer + shake/rotation callbacks
+- Add Vector3 for 3-component samples (sensors)
 
 ## v0.4.3
 

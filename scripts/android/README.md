@@ -51,6 +51,18 @@ end
 Callbacks are enqueued from the UI thread and run during `Window.draw` /
 `begin_drawing` (not on the Android UI thread).
 
+## Sensors
+
+`GameLoader` registers accelerometer / gyroscope / magnetometer listeners
+(`SENSOR_DELAY_GAME`) and exposes latest samples to Ruby:
+
+```ruby
+Device.accelerometer   # Vector3
+Device.gyroscope?
+Device.on_shake { |i| }
+Device.on_rotation { |pitch, yaw, roll| }  # radians; yaw is 0 without fusion
+```
+
 ## Vendored GameActivity
 
 `vendor/android/game-activity/` contains:

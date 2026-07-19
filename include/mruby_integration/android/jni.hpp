@@ -24,3 +24,11 @@ void taylor_window_enqueue_orientation_change(int old_code, int new_code);
 
 // Android config-change path: tracks last physical portrait/landscape code.
 void taylor_window_notify_physical_orientation(int physical_code);
+
+// Motion sensors (latest sample). Stubs return zeros / false off Android.
+void taylor_android_get_accelerometer(float* x, float* y, float* z);
+void taylor_android_get_gyroscope(float* x, float* y, float* z);
+void taylor_android_get_magnetometer(float* x, float* y, float* z);
+bool taylor_android_has_accelerometer();
+bool taylor_android_has_gyroscope();
+bool taylor_android_has_magnetometer();

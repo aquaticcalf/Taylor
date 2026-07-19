@@ -11,6 +11,12 @@ JavaVM* g_vm = nullptr;
 jclass g_game_loader = nullptr;
 jmethodID g_set_orientation = nullptr;
 jmethodID g_get_orientation = nullptr;
+jmethodID g_get_accel = nullptr;
+jmethodID g_get_gyro = nullptr;
+jmethodID g_get_mag = nullptr;
+jmethodID g_has_accel = nullptr;
+jmethodID g_has_gyro = nullptr;
+jmethodID g_has_mag = nullptr;
 
 auto jni_env() -> JNIEnv*
 {
@@ -30,6 +36,27 @@ auto jni_env() -> JNIEnv*
     return env;
   }
   return nullptr;
+}
+
+auto copy_float3(JNIEnv* env, jfloatArray arr, float* x, float* y, float* z) -> bool
+{
+  if (arr == nullptr || env->GetArrayLength(arr) < 3) {
+    if (arr != nullptr) {
+      env->DeleteLocalRef(arr);
+    }
+    return false;
+  }
+  jfloat buf[3];
+  env->GetFloatArrayRegion(arr, 0, 3, buf);
+  env->DeleteLocalRef(arr);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  *x = buf[0];
+  *y = buf[1];
+  *z = buf[2];
+  return true;
 }
 
 } // namespace
@@ -56,7 +83,16 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*)
 
   g_set_orientation = env->GetStaticMethodID(g_game_loader, "setOrientation", "(I)V");
   g_get_orientation = env->GetStaticMethodID(g_game_loader, "getOrientation", "()I");
-  if (g_set_orientation == nullptr || g_get_orientation == nullptr) {
+  g_get_accel = env->GetStaticMethodID(g_game_loader, "getAccelerometer", "()[F");
+  g_get_gyro = env->GetStaticMethodID(g_game_loader, "getGyroscope", "()[F");
+  g_get_mag = env->GetStaticMethodID(g_game_loader, "getMagnetometer", "()[F");
+  g_has_accel = env->GetStaticMethodID(g_game_loader, "hasAccelerometer", "()Z");
+  g_has_gyro = env->GetStaticMethodID(g_game_loader, "hasGyroscope", "()Z");
+  g_has_mag = env->GetStaticMethodID(g_game_loader, "hasMagnetometer", "()Z");
+
+  if (g_set_orientation == nullptr || g_get_orientation == nullptr || g_get_accel == nullptr ||
+      g_get_gyro == nullptr || g_get_mag == nullptr || g_has_accel == nullptr ||
+      g_has_gyro == nullptr || g_has_mag == nullptr) {
     return JNI_ERR;
   }
 
@@ -91,6 +127,100 @@ int taylor_android_get_orientation()
   return static_cast<int>(value);
 }
 
+void taylor_android_get_accelerometer(float* x, float* y, float* z)
+{
+  *x = *y = *z = 0.0f;
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_accel == nullptr) {
+    return;
+  }
+  auto arr = static_cast<jfloatArray>(env->CallStaticObjectMethod(g_game_loader, g_get_accel));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return;
+  }
+  copy_float3(env, arr, x, y, z);
+}
+
+void taylor_android_get_gyroscope(float* x, float* y, float* z)
+{
+  *x = *y = *z = 0.0f;
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_gyro == nullptr) {
+    return;
+  }
+  auto arr = static_cast<jfloatArray>(env->CallStaticObjectMethod(g_game_loader, g_get_gyro));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return;
+  }
+  copy_float3(env, arr, x, y, z);
+}
+
+void taylor_android_get_magnetometer(float* x, float* y, float* z)
+{
+  *x = *y = *z = 0.0f;
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_get_mag == nullptr) {
+    return;
+  }
+  auto arr = static_cast<jfloatArray>(env->CallStaticObjectMethod(g_game_loader, g_get_mag));
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return;
+  }
+  copy_float3(env, arr, x, y, z);
+}
+
+bool taylor_android_has_accelerometer()
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_has_accel == nullptr) {
+    return false;
+  }
+  const jboolean v = env->CallStaticBooleanMethod(g_game_loader, g_has_accel);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return v == JNI_TRUE;
+}
+
+bool taylor_android_has_gyroscope()
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_has_gyro == nullptr) {
+    return false;
+  }
+  const jboolean v = env->CallStaticBooleanMethod(g_game_loader, g_has_gyro);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return v == JNI_TRUE;
+}
+
+bool taylor_android_has_magnetometer()
+{
+  JNIEnv* env = jni_env();
+  if (env == nullptr || g_game_loader == nullptr || g_has_mag == nullptr) {
+    return false;
+  }
+  const jboolean v = env->CallStaticBooleanMethod(g_game_loader, g_has_mag);
+  if (env->ExceptionCheck()) {
+    env->ExceptionClear();
+    return false;
+  }
+  return v == JNI_TRUE;
+}
+
+// UI thread → enqueue only; Ruby runs later in Window.begin_drawing.
+extern "C" JNIEXPORT void JNICALL __attribute__((used, visibility("default")))
+Java_com_raylib_game_GameLoader_nativeOnOrientationChange(JNIEnv*, jclass, jint new_orientation)
+{
+  taylor_window_notify_physical_orientation(static_cast<int>(new_orientation));
+}
+
 #else
 
 bool taylor_android_set_orientation(int)
@@ -103,15 +233,34 @@ int taylor_android_get_orientation()
   return TaylorAndroidOrientation::LANDSCAPE;
 }
 
-#endif
-
-#if defined(__ANDROID__) || defined(__NDK_MAJOR__)
-
-// UI thread → enqueue only; Ruby runs later in Window.begin_drawing.
-extern "C" JNIEXPORT void JNICALL __attribute__((used, visibility("default")))
-Java_com_raylib_game_GameLoader_nativeOnOrientationChange(JNIEnv*, jclass, jint new_orientation)
+void taylor_android_get_accelerometer(float* x, float* y, float* z)
 {
-  taylor_window_notify_physical_orientation(static_cast<int>(new_orientation));
+  *x = *y = *z = 0.0f;
+}
+
+void taylor_android_get_gyroscope(float* x, float* y, float* z)
+{
+  *x = *y = *z = 0.0f;
+}
+
+void taylor_android_get_magnetometer(float* x, float* y, float* z)
+{
+  *x = *y = *z = 0.0f;
+}
+
+bool taylor_android_has_accelerometer()
+{
+  return false;
+}
+
+bool taylor_android_has_gyroscope()
+{
+  return false;
+}
+
+bool taylor_android_has_magnetometer()
+{
+  return false;
 }
 
 #endif

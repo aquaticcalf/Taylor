@@ -11,6 +11,7 @@
 
 #include "mruby_integration/android/jni.hpp"
 #include "mruby_integration/exceptions.hpp"
+#include "mruby_integration/models/device.hpp"
 #include "mruby_integration/models/image.hpp"
 #include "mruby_integration/models/monitor.hpp"
 #include "mruby_integration/models/vector2.hpp"
@@ -262,8 +263,9 @@ auto mrb_Window_ready(mrb_state*, mrb_value) -> mrb_value
 
 auto mrb_Window_begin_drawing(mrb_state* mrb, mrb_value) -> mrb_value
 {
-  // Drain orientation events on the game thread (never yield from Android UI/JNI).
+  // Drain orientation / sensor events on the game thread (never yield from UI/JNI).
   drain_orientation_callbacks(mrb);
+  taylor_device_drain_callbacks(mrb);
   BeginDrawing();
   return mrb_nil_value();
 }
