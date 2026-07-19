@@ -92,10 +92,12 @@ namespace :rename do
   end
 
   task :android do
-    puts "Copying android build"
-
+    # APK is written by android:release:build_apk into exports/android.
+    # Do not copy libmain.so into the export zip.
     FileUtils.mkdir_p "/app/game/exports/android"
-    FileUtils.cp Dir.glob("/app/taylor/dist/android/release/*"), "/app/game/exports/android"
+    apks = Dir.glob("/app/game/exports/android/*.apk")
+    raise "No Android APK in exports/android (expected build_apk to produce one)" if apks.empty?
+    puts "Android export APK: #{apks.join(', ')}"
   end
 
   namespace :linux do

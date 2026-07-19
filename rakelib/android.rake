@@ -1,3 +1,4 @@
+require "shellwords"
 require_relative "builder"
 require_relative "helpers"
 
@@ -5,6 +6,8 @@ class AndroidBuilder < Builder
   GAME_ACTIVITY_ROOT = "./vendor/android/game-activity"
   GAME_ACTIVITY_INCLUDE = "#{GAME_ACTIVITY_ROOT}/include"
   GAME_ACTIVITY_LIB = "#{GAME_ACTIVITY_ROOT}/lib/arm64-v8a/libgame-activity_static.a"
+  KEYSTORE_PASS = "buttsbuttsbutts"
+  KEYSTORE_ALIAS = "app"
 
   def setup_platform
     @name = "libmain.so"
@@ -61,9 +64,11 @@ namespace :android do
 
   namespace :release do
     task :strip do
+      # Always release path -- this task lives under android:release and must not
+      # depend on builder.variant (defaults to :debug in a fresh Rake process).
       sh <<-CMD
         /ndk/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
-          "./dist/#{builder.platform}/#{builder.variant}/#{builder.name}"
+          "./dist/#{builder.platform}/release/#{builder.name}"
       CMD
     end
 
@@ -80,11 +85,13 @@ namespace :android do
     multitask build_objects: builder.objects("release")
     task build: builder.build_dependencies
     task build: "build:android:release"
+    task build: :strip
 
     task :build_apk do
       game_root = ENV.fetch("GAME_ROOT", "/app/game")
       export_dir = "#{game_root}/exports/android"
-      app_name = builder.name
+      app_name = builder.game_name
+      app_version = builder.game_version
       gradle_project = "/app/taylor/scripts/android"
       apk_out_dir = "#{gradle_project}/app/build/outputs/apk/release"
       unsigned_apk = "#{apk_out_dir}/app-release-unsigned.apk"
@@ -94,14 +101,15 @@ namespace :android do
       sh "mkdir -p #{game_root}/assets"
 
       sh <<-CMD
-        export GAME_ROOT=#{game_root}
+        export GAME_ROOT=#{Shellwords.escape(game_root)}
         export TAYLOR_ANDROID_LIB=/app/taylor/dist/android/release/#{builder.name}
         export ANDROID_HOME=/sdk
         export ANDROID_SDK_ROOT=/sdk
         cd #{gradle_project}
         gradle \
           --no-daemon \
-          -PapplicationName=#{app_name} \
+          -PapplicationName=#{Shellwords.escape(app_name)} \
+          -PtaylorVersionName=#{Shellwords.escape(app_version)} \
           :app:assembleRelease
       CMD
 
@@ -116,21 +124,36 @@ namespace :android do
       raise "Gradle did not produce an APK in #{apk_out_dir}" unless built && File.exist?(built)
 
       final_apk = "#{export_dir}/#{builder.apk_name(final: true)}"
-      sh "cp #{built} #{final_apk}"
+      sh "cp #{Shellwords.escape(built)} #{Shellwords.escape(final_apk)}"
 
       keystore = "#{game_root}/raylib.keystore"
-      if File.exist?(keystore)
+      pass = AndroidBuilder::KEYSTORE_PASS
+      alias_name = AndroidBuilder::KEYSTORE_ALIAS
+      unless File.exist?(keystore)
+        puts "Generating debug keystore at #{keystore}"
         sh <<-CMD
-          apksigner sign \
-            --ks-key-alias app \
-            --ks #{keystore} \
-            --ks-pass pass:buttsbuttsbutts \
-            --key-pass pass:buttsbuttsbutts \
-            #{final_apk}
+          keytool -genkeypair -noprompt \
+            -keystore #{Shellwords.escape(keystore)} \
+            -storepass #{Shellwords.escape(pass)} \
+            -keypass #{Shellwords.escape(pass)} \
+            -alias #{Shellwords.escape(alias_name)} \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Taylor,O=Taylor,C=US"
         CMD
-      else
-        puts "WARNING: no keystore at #{keystore}; APK left unsigned"
       end
+
+      sh <<-CMD
+        apksigner sign \
+          --ks-key-alias #{Shellwords.escape(alias_name)} \
+          --ks #{Shellwords.escape(keystore)} \
+          --ks-pass pass:#{pass} \
+          --key-pass pass:#{pass} \
+          #{Shellwords.escape(final_apk)}
+      CMD
+
+      sh "apksigner verify #{Shellwords.escape(final_apk)}"
 
       puts "Android APK: #{final_apk}"
     end

@@ -70,7 +70,12 @@
 Taylor Android exports use Jetpack **GameActivity** (`scripts/android/GameLoader.java`)
 instead of `NativeActivity`. Native code links
 `vendor/android/game-activity/lib/arm64-v8a/libgame-activity_static.a` and the APK
-is assembled with Gradle (`scripts/android/`).
+is assembled with Gradle (`scripts/android/`). Packaging requires Gradle (no
+standalone aapt/dx pipeline).
+
+If `$GAME_ROOT/raylib.keystore` is missing, the export generates a dev keystore
+and signs with `apksigner`. Launcher label and version come from
+`taylor-config.json` (`name` / `version`).
 
 Rebuild the Android image after pulling these changes:
 

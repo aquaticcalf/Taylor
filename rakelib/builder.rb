@@ -104,6 +104,15 @@ class Builder
     @options.name
   end
 
+  # Game display name from Taylor::Config (AndroidBuilder#name is the binary name).
+  def game_name
+    @options.name
+  end
+
+  def game_version
+    @options.version
+  end
+
   def mock_raylib?
     @options.debugging.raylib.mock_implementation? || ENV.key?("MOCK_RAYLIB")
   end

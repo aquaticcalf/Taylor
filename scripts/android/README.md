@@ -1,26 +1,34 @@
 # Taylor Android packaging (GameActivity)
 
-Step 1 of Tier 3 orientation support: Taylor Android apps use **Jetpack
-GameActivity** (`androidx.games:games-activity`) instead of the legacy
-`android.app.NativeActivity`.
+Taylor Android apps use **Jetpack GameActivity** (`androidx.games:games-activity`)
+instead of `android.app.NativeActivity`. APKs are assembled with **Gradle / AGP**
+(aapt2 + d8 under the hood). There is no hand-rolled aapt/dx path.
 
 ## Layout
 
 | Path | Purpose |
 |------|---------|
-| `GameLoader.java` | Activity subclass of `com.google.androidgamesdk.GameActivity` |
-| `AndroidManifest.xml` | Launches `GameLoader`, loads `libmain` |
+| `app/src/main/java/.../GameLoader.java` | Activity subclass of GameActivity |
+| `AndroidManifest.xml` | Launches `GameLoader`, loads `libmain`, `appCategory=game` |
 | `app/build.gradle` | AGP app module; depends on `games-activity:4.4.2` |
 | `res/values/themes.xml` | Fullscreen AppCompat theme |
 
-Native code (`libmain.so`) is still built by Rake (`rakelib/android.rake`) and
-copied into `app/src/main/jniLibs/arm64-v8a/` before Gradle assembles the APK.
+Native code (`libmain.so`) is built by Rake (`rakelib/android.rake`) and copied
+into `app/src/main/jniLibs/arm64-v8a/` before Gradle assembles the APK.
+
+Game name and version are injected at assemble time from `Taylor::Config`
+(`-PapplicationName`, `-PversionName`). The Gradle project files stay static;
+they are not generated per export.
 
 ## Build flow
 
 1. Cross-compile Taylor: `bundle exec rake android:release:build` (inside the Android Docker image)
-2. That task links against `vendor/android/game-activity/lib/arm64-v8a/libgame-activity_static.a`
-3. Then runs Gradle `:app:assembleRelease` to package the GameActivity APK
+2. Links against `vendor/android/game-activity/lib/arm64-v8a/libgame-activity_static.a`
+3. Strips `libmain.so`, then runs Gradle `:app:assembleRelease`
+4. Signs the APK with `apksigner` (generates `$GAME_ROOT/raylib.keystore` if missing)
+
+Dev keystore alias is `app` with the historical default password. Use your own
+keystore for Play Store uploads.
 
 ## Vendored GameActivity
 

@@ -15,6 +15,9 @@
 - Android: package APKs with Gradle + games-activity instead of hand-rolled aapt/dx
 - Android: vendor game-activity headers/static lib for arm64-v8a
 - Android: raylib Android backend patched for GameActivity input buffers
+- Android: auto-generate dev keystore and always sign APKs with apksigner
+- Android: pass game name/version from Taylor::Config into the APK
+- Android: mark packages with android:appCategory="game"
 
 ## v0.4.3
 
