@@ -18,6 +18,7 @@
 - Android: auto-generate dev keystore and always sign APKs with apksigner
 - Android: pass game name/version from Taylor::Config into the APK
 - Android: mark packages with android:appCategory="game"
+- Android: add Window.orientation / Window.orientation= (GameActivity JNI)
 
 ## v0.4.3
 

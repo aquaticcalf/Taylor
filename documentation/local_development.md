@@ -77,6 +77,13 @@ If `$GAME_ROOT/raylib.keystore` is missing, the export generates a dev keystore
 and signs with `apksigner`. Launcher label and version come from
 `taylor-config.json` (`name` / `version`).
 
+Runtime orientation (Android):
+
+```ruby
+Window.orientation = :portrait   # or :landscape, :sensor, :auto, ...
+puts Window.orientation
+```
+
 Rebuild the Android image after pulling these changes:
 
 ```

@@ -457,6 +457,19 @@ module Window
     Monitor.current
   end
 
+  # @!method self.orientation
+  #   Screen orientation for the app (primarily Android).
+  #   On Android this maps to ActivityInfo screen orientation. Elsewhere the
+  #   value is stored in-process only.
+  #   @return [Symbol] +:landscape+, +:portrait+, +:auto+, +:sensor+,
+  #     +:sensor_landscape+, +:sensor_portrait+, or +:full_sensor+
+  #
+  # @!method self.orientation=(value)
+  #   Sets preferred screen orientation (primarily Android).
+  #   @param value [Symbol]
+  #   @return [Symbol]
+  #   @raise [ArgumentError] if +value+ is not a supported orientation symbol
+
   # This module holds all the constants for {Window} flags.
   module Flag
     # @!group Window flags

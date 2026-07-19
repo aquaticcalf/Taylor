@@ -30,6 +30,18 @@ they are not generated per export.
 Dev keystore alias is `app` with the historical default password. Use your own
 keystore for Play Store uploads.
 
+## Runtime orientation
+
+`GameLoader` exposes `setOrientation` / `getOrientation` for the Ruby API:
+
+```ruby
+Window.orientation = :portrait
+Window.orientation  # => :portrait
+```
+
+Supported: `:landscape`, `:portrait`, `:auto`, `:sensor`, `:sensor_landscape`,
+`:sensor_portrait`, `:full_sensor`.
+
 ## Vendored GameActivity
 
 `vendor/android/game-activity/` contains:

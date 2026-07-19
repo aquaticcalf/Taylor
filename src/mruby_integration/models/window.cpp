@@ -7,6 +7,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
+#include "mruby_integration/android/jni.hpp"
 #include "mruby_integration/exceptions.hpp"
 #include "mruby_integration/models/image.hpp"
 #include "mruby_integration/models/monitor.hpp"
@@ -16,6 +17,94 @@
 #include "ruby/models/window.hpp"
 
 struct RClass* Window_class;
+
+// Last requested orientation (also used on non-Android as the stored value).
+static int g_window_orientation = TaylorAndroidOrientation::LANDSCAPE;
+
+static auto orientation_code_for_sym(mrb_state* mrb, mrb_sym sym) -> int
+{
+  if (sym == mrb_intern_lit(mrb, "landscape")) {
+    return TaylorAndroidOrientation::LANDSCAPE;
+  }
+  if (sym == mrb_intern_lit(mrb, "portrait")) {
+    return TaylorAndroidOrientation::PORTRAIT;
+  }
+  if (sym == mrb_intern_lit(mrb, "auto")) {
+    return TaylorAndroidOrientation::USER;
+  }
+  if (sym == mrb_intern_lit(mrb, "sensor")) {
+    return TaylorAndroidOrientation::SENSOR;
+  }
+  if (sym == mrb_intern_lit(mrb, "sensor_landscape")) {
+    return TaylorAndroidOrientation::SENSOR_LANDSCAPE;
+  }
+  if (sym == mrb_intern_lit(mrb, "sensor_portrait")) {
+    return TaylorAndroidOrientation::SENSOR_PORTRAIT;
+  }
+  if (sym == mrb_intern_lit(mrb, "full_sensor")) {
+    return TaylorAndroidOrientation::FULL_SENSOR;
+  }
+
+  mrb_raise(mrb,
+    E_ARGUMENT_ERROR,
+    "unknown orientation (expected :landscape, :portrait, :auto, :sensor, "
+    ":sensor_landscape, :sensor_portrait, or :full_sensor)");
+  return TaylorAndroidOrientation::LANDSCAPE;
+}
+
+static auto orientation_sym_for_code(mrb_state* mrb, int code) -> mrb_sym
+{
+  switch (code) {
+    case TaylorAndroidOrientation::LANDSCAPE:
+      return mrb_intern_lit(mrb, "landscape");
+    case TaylorAndroidOrientation::PORTRAIT:
+      return mrb_intern_lit(mrb, "portrait");
+    case TaylorAndroidOrientation::USER:
+      return mrb_intern_lit(mrb, "auto");
+    case TaylorAndroidOrientation::SENSOR:
+      return mrb_intern_lit(mrb, "sensor");
+    case TaylorAndroidOrientation::SENSOR_LANDSCAPE:
+      return mrb_intern_lit(mrb, "sensor_landscape");
+    case TaylorAndroidOrientation::SENSOR_PORTRAIT:
+      return mrb_intern_lit(mrb, "sensor_portrait");
+    case TaylorAndroidOrientation::FULL_SENSOR:
+      return mrb_intern_lit(mrb, "full_sensor");
+    default:
+      // UNSPECIFIED (-1) etc. — fall back to last request, then landscape
+      if (code != g_window_orientation) {
+        return orientation_sym_for_code(mrb, g_window_orientation);
+      }
+      return mrb_intern_lit(mrb, "landscape");
+  }
+}
+
+auto mrb_Window_orientation(mrb_state* mrb, mrb_value) -> mrb_value
+{
+#ifdef __NDK_MAJOR__
+  int code = taylor_android_get_orientation();
+  if (code < 0) {
+    code = g_window_orientation;
+  }
+#else
+  const int code = g_window_orientation;
+#endif
+  return mrb_symbol_value(orientation_sym_for_code(mrb, code));
+}
+
+auto mrb_Window_set_orientation(mrb_state* mrb, mrb_value) -> mrb_value
+{
+  mrb_sym sym;
+  mrb_get_args(mrb, "n", &sym);
+
+  const int code = orientation_code_for_sym(mrb, sym);
+  g_window_orientation = code;
+
+#ifdef __NDK_MAJOR__
+  taylor_android_set_orientation(code);
+#endif
+
+  return mrb_symbol_value(sym);
+}
 
 auto mrb_Window_open(mrb_state* mrb, mrb_value) -> mrb_value
 {
@@ -487,6 +576,10 @@ void append_models_Window(mrb_state* mrb)
     mrb, Window_class, "seconds_open", mrb_Window_seconds_open, MRB_ARGS_NONE());
   mrb_define_class_method(
     mrb, Window_class, "draw_frame_rate", mrb_Window_draw_frame_rate, MRB_ARGS_OPT(1));
+  mrb_define_class_method(
+    mrb, Window_class, "orientation", mrb_Window_orientation, MRB_ARGS_NONE());
+  mrb_define_class_method(
+    mrb, Window_class, "orientation=", mrb_Window_set_orientation, MRB_ARGS_REQ(1));
 
   load_ruby_models_window(mrb);
 }
